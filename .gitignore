@@ -1,0 +1,5 @@
+raytracing-app
+*.o
+*.s
+*.i
+.vscode
