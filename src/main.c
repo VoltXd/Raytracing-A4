@@ -1,9 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <time.h>
+#include <math.h>
+
 #include "stb_image_write.h"
+
 #include "vec3_color.h"
 #include "utils.h"  
+#include "camera.h"
+#include "sphere.h"
+#include "raytracing.h"
+
+
+#define CHANNEL_NUM 3
 
 
 int main(int argc, char* argv[])
@@ -25,37 +35,60 @@ int main(int argc, char* argv[])
     }
 
     // ****************** Hello image ****************** //
-    // STBI configuration
+    // Configuration
     stbi_flip_vertically_on_write(1);
+    srand(time(NULL));
 
     // Pixels allocation
-    color_t* colors = malloc(WIDTH * HEIGHT * sizeof(color_t));
+    color_t* image_f = malloc(WIDTH * HEIGHT * sizeof(color_t));
 
-    // Image gradient 
-    uint16_t i, j;
-    const float INV_WIDTH_MINUS_1 = 1.0f / (WIDTH - 1.0f);
-    const float INV_HEIGHT_MINUS_1 = 1.0f / (HEIGHT - 1.0f);
-    for (j = 0; j < HEIGHT; j++)
-    {
-        for (i = 0; i < WIDTH; i++)
-        {
-            colors[j*WIDTH + i].r = i * INV_WIDTH_MINUS_1;
-            colors[j*WIDTH + i].g = j * INV_HEIGHT_MINUS_1;
-            colors[j*WIDTH + i].b = 0;
-        }
+    // Camera
+    camera_t camera;
+    camera.position = (vec3_t){ 0.0f, 1.0f, 10.0f };
+    camera.direction = (vec3_t){ 0.0f, 0.0f, -1.0f };
+    camera.fov = M_PI * 0.5;
+
+    const uint8_t NUMBER_OF_SPHERES = 25;
+    sphere_t spheres[NUMBER_OF_SPHERES];
+
+    // Ground
+    spheres[0].position = (vec3_t){ 0.0f, -1000.0f, 0.0f };
+    spheres[0].albedo = (color_t){ 0.5f, 0.5f, 0.5f };
+    spheres[0].radius = 1000.0f;
+    // spheres[0].position = (vec3_t){ 0.0f, 1.0f, 0.0f };
+    // spheres[0].albedo = (color_t){ 0.5f, 0.5f, 0.5f };
+    // spheres[0].radius = 0.5f;
+
+    // Spheres
+    uint8_t i;
+    for (i = 1; i < NUMBER_OF_SPHERES; i++)
+    {   
+        float radius = 0.2f + 0.4f * ((float)rand() / RAND_MAX);
+
+        spheres[i].position.x = -NUMBER_OF_SPHERES/2 + i + ((float)rand() / RAND_MAX);
+        spheres[i].position.y = radius;
+        spheres[i].position.z = -5.0f + 10.f * ((float)rand() / RAND_MAX);
+        spheres[i].albedo.r = ((float)rand() / RAND_MAX);
+        spheres[i].albedo.g = ((float)rand() / RAND_MAX);
+        spheres[i].albedo.b = ((float)rand() / RAND_MAX);
+        spheres[i].radius = radius;
     }
 
+    // **************** Trace rays **************** //
+    raytracing(image_f, WIDTH, HEIGHT, spheres, NUMBER_OF_SPHERES, &camera);
+    
+
     // Output image allocation & copy
-    color_u8_t* colors_u8 = malloc(WIDTH * HEIGHT * sizeof(color_u8_t));
-    imageFloatToU8(colors, colors_u8, WIDTH * HEIGHT);
+    color_u8_t* image_u8 = malloc(WIDTH * HEIGHT * sizeof(color_u8_t));
+    imageFloatToU8(image_f, image_u8, WIDTH * HEIGHT);
     
     // Release float image
-    free(colors);
+    free(image_f);
 
     // Save image
-    stbi_write_png("test.png", WIDTH, HEIGHT, 3, colors_u8, WIDTH * 3);
+    stbi_write_png("test.png", WIDTH, HEIGHT, CHANNEL_NUM, image_u8, WIDTH * CHANNEL_NUM);
 
     // Destroy image
-    free(colors_u8);
+    free(image_u8);
     return EXIT_SUCCESS;
 }
