@@ -19,18 +19,19 @@
 int main(int argc, char* argv[])
 {
     // Arguments verification
-    if (argc != 3)
+    if (argc != 5)
     {
-        printf("ERROR::BAD_ARGUMENTS -> PATH WIDTH HEIGHT\n");
+        printf("ERROR::BAD_ARGUMENTS -> PATH WIDTH HEIGHT RAYS_PER_PIXEL NUMBER_OF_SPHERES\n");
         return EXIT_FAILURE;
     }
 
     const uint16_t WIDTH = atoi(argv[1]);
     const uint16_t HEIGHT = atoi(argv[2]);
-    
-    if (!WIDTH || !HEIGHT)
+    const uint16_t RAYS_PER_PIXEL = atoi(argv[3]);
+    const uint8_t NUMBER_OF_SPHERES = atoi(argv[4]);
+    if (!WIDTH || !HEIGHT || !RAYS_PER_PIXEL || !NUMBER_OF_SPHERES)
     {
-        printf("ERROR:BAD_ARGUMENTS_VALUE -> Must be Non-Zero INTEGER");
+        printf("ERROR:BAD_ARGUMENTS_VALUE -> Must be Non-Zero INTEGER\n");
         return EXIT_FAILURE;
     }
 
@@ -48,7 +49,6 @@ int main(int argc, char* argv[])
     camera.direction = (vec3_t){ 0.0f, 0.0f, -1.0f };
     camera.fov = M_PI * 0.5;
 
-    const uint8_t NUMBER_OF_SPHERES = 25;
     sphere_t spheres[NUMBER_OF_SPHERES];
 
     // Ground
@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
     {   
         float radius = 0.2f + 0.4f * ((float)rand() / RAND_MAX);
 
-        spheres[i].position.x = -NUMBER_OF_SPHERES/2 + i + ((float)rand() / RAND_MAX);
+        spheres[i].position.x = -5.0f + 10.0f * ((float)rand() / RAND_MAX);
         spheres[i].position.y = radius;
         spheres[i].position.z = -5.0f + 10.f * ((float)rand() / RAND_MAX);
         spheres[i].albedo.r = ((float)rand() / RAND_MAX);
@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
     }
 
     // **************** Trace rays **************** //
-    raytracing(image_f, WIDTH, HEIGHT, spheres, NUMBER_OF_SPHERES, &camera);
+    raytracing(image_f, WIDTH, HEIGHT, RAYS_PER_PIXEL, spheres, NUMBER_OF_SPHERES, &camera);
     
 
     // Output image allocation & copy
