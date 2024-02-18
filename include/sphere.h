@@ -10,7 +10,7 @@ typedef struct sphere_t
     color_t albedo;
     float radius;
     union { float roughness, fuzziness, refractionIndex; };
-    enum { LAMBERTIAN, METAL, DIELECTRIC, MATERIAL_SIZE } material;     
+    enum { LAMBERTIAN, METAL, DIELECTRIC, NUMBER_OF_MATERIAL } material;     
 } sphere_t;
 
 #endif

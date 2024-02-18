@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
     camera_t camera;
     camera.position = (vec3_t){ 0.0f, 1.0f, 10.0f };
     camera.direction = (vec3_t){ 0.0f, 0.0f, -1.0f };
-    camera.fov = degrees_to_radians(45.0f);
+    camera.fov = degrees_to_radians(90.0f);
 
     vec3_normalize(&camera.direction);
 
@@ -90,25 +90,39 @@ int main(int argc, char* argv[])
     uint8_t i;
     for (i = 4; i < NUMBER_OF_SPHERES; i++)
     {   
-        float radius = 0.2f + 0.4f * ((float)rand() / RAND_MAX);
+        float radius = 0.1f + 0.2f * ((float)rand() / RAND_MAX);
 
         spheres[i].position.x = -5.0f + 10.0f * ((float)rand() / RAND_MAX);
         spheres[i].position.y = radius;
         spheres[i].position.z = -5.0f + 10.f * ((float)rand() / RAND_MAX);
-        spheres[i].material = i % MATERIAL_SIZE;
-        if (spheres[i].material == DIELECTRIC)
+        spheres[i].material = i % NUMBER_OF_MATERIAL;
+        switch (spheres[i].material)
         {
-            spheres[i].albedo.r = 1.0f;
-            spheres[i].albedo.g = 1.0f;
-            spheres[i].albedo.b = 1.0f;
-            spheres[i].roughness = 1.0f + 3.0f * ((float)rand() / RAND_MAX);
-        }
-        else
-        {
-            spheres[i].albedo.r = ((float)rand() / RAND_MAX);
-            spheres[i].albedo.g = ((float)rand() / RAND_MAX);
-            spheres[i].albedo.b = ((float)rand() / RAND_MAX);
-            spheres[i].roughness = ((float)rand() / RAND_MAX);
+            case LAMBERTIAN:
+                spheres[i].albedo.r = ((float)rand() / RAND_MAX);
+                spheres[i].albedo.g = ((float)rand() / RAND_MAX);
+                spheres[i].albedo.b = ((float)rand() / RAND_MAX);
+                spheres[i].roughness = 0.8f + 0.2f * ((float)rand() / RAND_MAX);
+                break;
+
+            case METAL:
+                spheres[i].albedo.r = 0.5f + 0.5f * ((float)rand() / RAND_MAX);
+                spheres[i].albedo.g = 0.5f + 0.5f * ((float)rand() / RAND_MAX);
+                spheres[i].albedo.b = 0.5f + 0.5f * ((float)rand() / RAND_MAX);
+                spheres[i].fuzziness = 0.1f * ((float)rand() / RAND_MAX);
+                break;
+                
+            case DIELECTRIC:
+                spheres[i].albedo.r = 1.0f;
+                spheres[i].albedo.g = 1.0f;
+                spheres[i].albedo.b = 1.0f;
+                spheres[i].refractionIndex = 1.1f + 2.9f * ((float)rand() / RAND_MAX);
+                break;
+
+            default:
+                printf("ERROR::BAD_SPHERE_MATERIAL: %d\n", spheres[i].material);
+                exit(EXIT_FAILURE);
+                break;
         }
         spheres[i].radius = radius;
     }
@@ -129,7 +143,7 @@ int main(int argc, char* argv[])
     free(spheres);
 
     // Linear space to Gamma space tranformation
-    // imageLinearToGamma(image_f, WIDTH * HEIGHT);
+    imageLinearToGamma(image_f, WIDTH * HEIGHT);
 
     // Output image allocation & copy
     color_u8_t* image_u8 = malloc(WIDTH * HEIGHT * sizeof(color_u8_t));
