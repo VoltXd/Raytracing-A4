@@ -137,7 +137,9 @@ int main(int argc, char* argv[])
 
     // Elapsed time
     gettimeofday(&end, NULL);
-    printf("Raytracing elapsed time: %u us\n", (end.tv_sec - start.tv_sec) * 1000000u + (end.tv_usec - start.tv_usec));
+    uint64_t elapsedTime = (end.tv_sec - start.tv_sec) * 1000000ull + (end.tv_usec - start.tv_usec);
+    printf("Raytracing elapsed time: %lu us\n", elapsedTime);
+    printf("Cycles per pixel: %f\n", elapsedTime * 2.8e3f / (WIDTH * HEIGHT));
 
     // Free spheres memory
     free(spheres);
