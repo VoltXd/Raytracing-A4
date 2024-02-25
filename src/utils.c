@@ -4,10 +4,10 @@
 
 static uint32_t pcg_hash(uint32_t* seed)
 {
-    uint32_t state = *seed * 747796405u + 2891336453u;
+    uint32_t state = *seed;
+    *seed = *seed * 747796405u + 2891336453u;
     uint32_t word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
-    *seed = (word >> 22u) ^ word;
-    return *seed;
+    return (word >> 22u) ^ word;
 }
 
 void imageFloatToU8(const color_t *src, color_u8_t *dst, uint32_t imgSize)
