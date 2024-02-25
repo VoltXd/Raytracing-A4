@@ -28,6 +28,7 @@ typedef struct vec3_t
 float vec3_lengthSquared(const vec3_t* v);
 float vec3_magnitude(const vec3_t* v);
 float vec3_dot(const vec3_t* v1, const vec3_t* v2);
+vec3_t vec3_cross(const vec3_t* v1, const vec3_t* v2);
 vec3_t vec3_reflect(const vec3_t* v, const vec3_t* n);
 vec3_t vec3_refract(const vec3_t* uv, const vec3_t* n, float refractionRatio, uint32_t* seed);
 uint8_t vec3_isNearZero(const vec3_t* v);

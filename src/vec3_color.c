@@ -18,6 +18,13 @@ float vec3_dot(const vec3_t* v1, const vec3_t* v2)
     return v1->x * v2->x + v1->y * v2->y + v1->z * v2->z;
 }
 
+vec3_t vec3_cross(const vec3_t *v1, const vec3_t *v2)
+{
+    return (vec3_t){ v1->y * v2->z - v1->z * v2->y,
+                     v1->z * v2->x - v1->x * v2->z,
+                     v1->x * v2->y - v1->y * v2->x };
+}
+
 vec3_t vec3_reflect(const vec3_t *v, const vec3_t *n)
 {
     vec3_t temp = vec3_scalarMul_return(n, 2.0f * vec3_dot(v, n));

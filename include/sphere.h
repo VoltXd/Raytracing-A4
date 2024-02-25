@@ -13,4 +13,6 @@ typedef struct sphere_t
     enum { LAMBERTIAN, METAL, DIELECTRIC, NUMBER_OF_MATERIAL } material;     
 } sphere_t;
 
+void initializeSpheres(sphere_t* spheres, const uint8_t SQRT_NUMBER_OF_SPHERES);
+
 #endif

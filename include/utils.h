@@ -9,10 +9,13 @@ void imageLinearToGamma(color_t* image, uint32_t imgSize);
 
 float randomFloatInUnitInterval(uint32_t* seed);
 float randomFloat(uint32_t* seed, float min, float max);
+vec3_t randomInUnitDisk(uint32_t* seed);
 vec3_t randomUnitVector(uint32_t* seed);
 vec3_t randomInHemisphere(uint32_t* seed, const vec3_t* normal);
 
 float shlickReflectance(float cos_theta, float refractionRation);
+
+vec3_t randomDefocusedRayPosition(uint32_t* seed, const vec3_t* center, const vec3_t* defocus_disk_u, const vec3_t* defocus_disk_v);
 
 inline float degrees_to_radians(float degrees) { return degrees * M_PI / 180.0f; }
 

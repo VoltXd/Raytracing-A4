@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     // Arguments verification
     if (argc != 6)
     {
-        printf("ERROR::BAD_ARGUMENTS -> PATH WIDTH HEIGHT RAYS_PER_PIXEL RAYS_DEPTH NUMBER_OF_SPHERES\n");
+        printf("ERROR::BAD_ARGUMENTS -> PATH WIDTH HEIGHT RAYS_PER_PIXEL RAYS_DEPTH SQRT_NUMBER_OF_SPHERES\n");
         return EXIT_FAILURE;
     }
 
@@ -29,17 +29,12 @@ int main(int argc, char* argv[])
     const uint16_t HEIGHT = atoi(argv[2]);
     const uint16_t RAYS_PER_PIXEL = atoi(argv[3]);
     const uint8_t RAYS_DEPTH = atoi(argv[4]);
-    const uint8_t NUMBER_OF_SPHERES = atoi(argv[5]);
-    if (!WIDTH || !HEIGHT || !RAYS_PER_PIXEL || !RAYS_DEPTH || !NUMBER_OF_SPHERES)
+    const uint8_t SQRT_NUMBER_OF_SPHERES = atoi(argv[5]);
+    if (!WIDTH || !HEIGHT || !RAYS_PER_PIXEL || !RAYS_DEPTH || !SQRT_NUMBER_OF_SPHERES)
     {
         printf("ERROR:BAD_ARGUMENTS_VALUE -> Must be Non-Zero INTEGER\n");
         return EXIT_FAILURE;
     }
-    else if (NUMBER_OF_SPHERES < 4)
-    {
-        printf("ERROR:BAD_ARGUMENTS_VALUE -> NUMBER_OF_SPHERES must be at least 4!\n");
-        return EXIT_FAILURE;
-    }   
 
 
     // ****************** Hello image ****************** //
@@ -48,88 +43,28 @@ int main(int argc, char* argv[])
     srand(time(NULL));
 
     // Pixels allocation
+    printf("Allocating image pixels.");
     color_t* image_f = malloc(WIDTH * HEIGHT * sizeof(color_t));
+    printf("\tDone!\n");
 
     // Camera
-    camera_t camera;
-    camera.position = (vec3_t){ 0.0f, 1.0f, 10.0f };
-    camera.direction = (vec3_t){ 0.0f, 0.0f, -1.0f };
-    camera.fov = degrees_to_radians(90.0f);
-
-    vec3_normalize(&camera.direction);
-
-    sphere_t* spheres = malloc(NUMBER_OF_SPHERES * sizeof(sphere_t));
-
-    // Ground
-    spheres[0].radius = 10000.0f;
-    spheres[0].position = (vec3_t){ 0.0f, -spheres[0].radius, 0.0f };
-    spheres[0].albedo = (color_t){ 0.5f, 0.5f, 0.5f };
-    spheres[0].roughness = 1.0f;
-    spheres[0].material = LAMBERTIAN;
-
-    // Big spheres
-    spheres[1].radius = 1.0f;
-    spheres[1].position = (vec3_t){ -4.0f, spheres[1].radius, 0.0f };
-    spheres[1].albedo = (color_t){ 0.4f, 0.2f, 0.1f };
-    spheres[1].roughness = 1.0f;
-    spheres[1].material = LAMBERTIAN;
-
-    spheres[2].radius = 1.0f;
-    spheres[2].position = (vec3_t){ 4.0f, spheres[2].radius, 0.0f };
-    spheres[2].albedo = (color_t){ 0.7f, 0.6f, 0.5f };
-    spheres[2].fuzziness = 0.0f;
-    spheres[2].material = METAL;
-
-    spheres[3].radius = 1.0f;
-    spheres[3].position = (vec3_t){ 0.0f, spheres[3].radius, 0.0f };
-    spheres[3].albedo = (color_t){ 1.0f, 1.0f, 1.0f };
-    spheres[3].refractionIndex = 1.5f;
-    spheres[3].material = DIELECTRIC;
-
+    printf("Initialising camera.");
+    camera_t camera = initializeCamera(WIDTH, HEIGHT);
+    printf("\t\tDone!\n");
+    
     // Spheres
-    uint8_t i;
-    for (i = 4; i < NUMBER_OF_SPHERES; i++)
-    {   
-        float radius = 0.1f + 0.2f * ((float)rand() / RAND_MAX);
-
-        spheres[i].position.x = -5.0f + 10.0f * ((float)rand() / RAND_MAX);
-        spheres[i].position.y = radius;
-        spheres[i].position.z = -5.0f + 10.f * ((float)rand() / RAND_MAX);
-        spheres[i].material = i % NUMBER_OF_MATERIAL;
-        switch (spheres[i].material)
-        {
-            case LAMBERTIAN:
-                spheres[i].albedo.r = ((float)rand() / RAND_MAX);
-                spheres[i].albedo.g = ((float)rand() / RAND_MAX);
-                spheres[i].albedo.b = ((float)rand() / RAND_MAX);
-                spheres[i].roughness = 0.8f + 0.2f * ((float)rand() / RAND_MAX);
-                break;
-
-            case METAL:
-                spheres[i].albedo.r = 0.5f + 0.5f * ((float)rand() / RAND_MAX);
-                spheres[i].albedo.g = 0.5f + 0.5f * ((float)rand() / RAND_MAX);
-                spheres[i].albedo.b = 0.5f + 0.5f * ((float)rand() / RAND_MAX);
-                spheres[i].fuzziness = 0.1f * ((float)rand() / RAND_MAX);
-                break;
-                
-            case DIELECTRIC:
-                spheres[i].albedo.r = 1.0f;
-                spheres[i].albedo.g = 1.0f;
-                spheres[i].albedo.b = 1.0f;
-                spheres[i].refractionIndex = 1.1f + 2.9f * ((float)rand() / RAND_MAX);
-                break;
-
-            default:
-                printf("ERROR::BAD_SPHERE_MATERIAL: %d\n", spheres[i].material);
-                exit(EXIT_FAILURE);
-                break;
-        }
-        spheres[i].radius = radius;
-    }
+    printf("Initialising spheres.");
+    const uint16_t NUMBER_OF_SPHERES = SQRT_NUMBER_OF_SPHERES * SQRT_NUMBER_OF_SPHERES + 4; 
+    sphere_t* spheres = malloc(NUMBER_OF_SPHERES  * sizeof(sphere_t));
+    initializeSpheres(spheres, SQRT_NUMBER_OF_SPHERES);
+    printf("\t\tDone!\n");
+    
 
     // **************** Trace rays **************** //
     // Time measure
     struct timeval start, end;
+    printf("Trace rays!");
+    fflush(stdout);
     gettimeofday(&start, NULL);
 
     // Render image
@@ -137,6 +72,8 @@ int main(int argc, char* argv[])
 
     // Elapsed time
     gettimeofday(&end, NULL);
+    printf("\t\t\tDone!\n");
+    
     uint64_t elapsedTime = (end.tv_sec - start.tv_sec) * 1000000ull + (end.tv_usec - start.tv_usec);
     printf("Raytracing elapsed time: %lu us\n", elapsedTime);
     printf("Cycles per pixel: %f\n", elapsedTime * 2.8e3f / (WIDTH * HEIGHT));

@@ -7,65 +7,61 @@
 
 #include "utils.h"
 
-void raytracing(color_t *image, const uint16_t width, const uint16_t height, const uint16_t raysPerPixel, const uint8_t raysDepth, const sphere_t* spheres, const uint8_t numberOfSpheres, const camera_t* camera)
+void raytracing(color_t* image, const uint16_t width, const uint16_t height, const uint16_t raysPerPixel, const uint8_t raysDepth, const sphere_t* spheres, const uint16_t numberOfSpheres, const camera_t* camera)
 {
-    // Boundaries from fov
-    const float aspectRatio = (float)width / height;
-    const float dirHorizontalMax = tanf(camera->fov * 0.5f);
-    const float dirHorizontalMin = -dirHorizontalMax;
-    const float dirVecticalMax = tanf(camera->fov * 0.5 / aspectRatio);
-    const float dirVecticalMin = -dirVecticalMax;
-
-    // Steps
-    const float stepHorizontal = (dirHorizontalMax - dirHorizontalMin) / width;
-    const float stepVertical = (dirVecticalMax - dirVecticalMin) / height;
-
     // Rays weight
     const float inv_raysPerPixel = 1.0f / raysPerPixel;
     
     uint16_t i, j, k, rayIdx, depthIdx;
-    #pragma omp parallel for private(i, k, rayIdx, depthIdx)
+    #pragma omp parallel for schedule(dynamic) private(i, k, rayIdx, depthIdx)
     for (j = 0; j < height; j++)
     {
         for (i = 0; i < width; i++)
         {
-            // Direction (Let's assume cam.dir.z == -1 or 1)
+            // Pixel initialisation
             color_t pixelColor = (color_t){ 0.0f, 0.0f, 0.0f };
             uint32_t seed = i  + width * j;
+
             for (rayIdx = 0; rayIdx < raysPerPixel; rayIdx++)
             {
-                // Ray
-                vec3_t rayPosition = camera->position;
-                vec3_t rayDirection;
-                rayDirection.x = dirHorizontalMin + (i + randomFloatInUnitInterval(&seed)) * stepHorizontal;
-                rayDirection.y = dirVecticalMin + (j + randomFloatInUnitInterval(&seed)) * stepVertical;
-                rayDirection.z = camera->direction.z;
+                // Pixel position (Ray position in viewport plane)
+                vec3_t pixelPosition_u = vec3_scalarMul_return(&camera->step_u, i + randomFloatInUnitInterval(&seed));
+                vec3_t pixelPosition_v = vec3_scalarMul_return(&camera->step_v, j + randomFloatInUnitInterval(&seed));
+                vec3_t pixelPosition = camera->viewportUpperLeft;
+                pixelPosition = vec3_add(&pixelPosition, &pixelPosition_u);
+                pixelPosition = vec3_add(&pixelPosition, &pixelPosition_v);
+
+                // Ray Initialisation
+                vec3_t rayPosition = (camera->defocusAngle <= 0.0f) ? camera->lookFrom : randomDefocusedRayPosition(&seed, &camera->lookFrom, &camera->defocus_disk_u, &camera->defocus_disk_v);
+                vec3_t rayDirection = vec3_sub(&pixelPosition, &rayPosition);
                 color_t rayColor = { 1.0f, 1.0f, 1.0f };
 
-                // Sky
-                float skyGradiant = 0.5f * (rayDirection.y + 1.0f);
-                const color_t skyColor = (color_t){ (1.0f - skyGradiant)*1.0f + skyGradiant*0.5f, (1.0f - skyGradiant)*1.0f + skyGradiant*0.7f, (1.0f- skyGradiant)*1.0f + skyGradiant*1.0f };
+                // Bounce loop
                 uint8_t isSkyHit = 0;
-
                 for (depthIdx = 0; depthIdx < raysDepth && !isSkyHit; depthIdx++)
                 {
+                    // Iterate through spheres to get the closest one
                     float closestSphereDistance = INFINITY;
-                    int8_t closestSphereIndex = -1;
+                    int16_t closestSphereIndex = -1;
                     for (k = 0; k < numberOfSpheres; k++)
                     {   
+                        // Maths (line == sphere equation)
                         vec3_t originToCenter = vec3_sub(&rayPosition, &spheres[k].position);
                         float a = vec3_dot(&rayDirection, &rayDirection);
                         float half_b = vec3_dot(&originToCenter, &rayDirection);
                         float c = vec3_dot(&originToCenter, &originToCenter) - spheres[k].radius * spheres[k].radius;
                         float delta = half_b*half_b - a*c;
 
+                        // 1 or 2 solutions => sphere hit
                         if (delta >= 0)
                         {
                             float newDistance = (-half_b - sqrtf(delta))/ a;
 
+                            // Ignore digital noise
                             if (newDistance <=  0.001f)
                                 continue;
 
+                            // Update sphere
                             if (newDistance < closestSphereDistance)
                             {
                                 closestSphereDistance = newDistance;
@@ -74,6 +70,7 @@ void raytracing(color_t *image, const uint16_t width, const uint16_t height, con
                         }
                     }
 
+                    // If sphere hit, else sky hit
                     if (closestSphereIndex != -1)
                     {
                         // Ray-sphere hit position
@@ -133,6 +130,8 @@ void raytracing(color_t *image, const uint16_t width, const uint16_t height, con
                     {
                         // The ray hit the sky, the loop must stop
                         isSkyHit = 1;
+                        float skyGradiant = 0.5f * (rayDirection.y / vec3_magnitude(&rayDirection) + 1.0f);
+                        const color_t skyColor = (color_t){ (1.0f - skyGradiant)*1.0f + skyGradiant*0.5f, (1.0f - skyGradiant)*1.0f + skyGradiant*0.7f, (1.0f- skyGradiant)*1.0f + skyGradiant*1.0f };
                         rayColor = color_mul(&rayColor, &skyColor);
                     }
                 }

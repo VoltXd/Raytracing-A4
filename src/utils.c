@@ -42,6 +42,13 @@ float randomFloat(uint32_t *seed, float min, float max)
     return min + (max - min) * randomFloatInUnitInterval(seed);
 }
 
+vec3_t randomInUnitDisk(uint32_t *seed)
+{
+    float theta = 2.0f * M_PI * randomFloatInUnitInterval(seed);
+    float r = sqrtf(randomFloatInUnitInterval(seed));
+    return (vec3_t){ r * cosf(theta), r * sinf(theta), 0.0f };
+}
+
 vec3_t randomUnitVector(uint32_t *seed)
 {
     float theta = 2.0f * M_PI * randomFloatInUnitInterval(seed);
@@ -67,5 +74,14 @@ float shlickReflectance(float cos_theta, float refractionRatio)
 { 
     float r0 = (1.0f - refractionRatio) / (1.0f + refractionRatio);
     r0 *= r0;
-    return r0 + (1.0f - r0) * pow((1.0f - cos_theta) ,5);
+    return r0 + (1.0f - r0) * powf((1.0f - cos_theta) ,5);
+}
+
+vec3_t randomDefocusedRayPosition(uint32_t *seed, const vec3_t *center, const vec3_t *defocus_disk_u, const vec3_t *defocus_disk_v)
+{
+    const vec3_t v = randomInUnitDisk(seed);
+    const vec3_t randomDefocus_u = vec3_scalarMul_return(defocus_disk_u, v.x);
+    const vec3_t randomDefocus_v = vec3_scalarMul_return(defocus_disk_v, v.y);
+    const vec3_t defocusedRayPosition = vec3_add(&randomDefocus_u, &randomDefocus_v);
+    return vec3_add(center, &defocusedRayPosition);
 }
