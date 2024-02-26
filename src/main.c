@@ -12,8 +12,14 @@
 #include "sphere.h"
 #include "raytracing.h"
 
+#include "raytracing_openCL.h"
+
+
 
 #define CHANNEL_NUM 3
+
+void renderImage(color_t* image, const char* filename, const uint16_t width, const uint16_t height);
+
 
 
 int main(int argc, char* argv[])
@@ -58,9 +64,13 @@ int main(int argc, char* argv[])
     sphere_t* spheres = malloc(NUMBER_OF_SPHERES  * sizeof(sphere_t));
     initializeSpheres(spheres, SQRT_NUMBER_OF_SPHERES);
     printf("\t\tDone!\n");
-    
 
-    // **************** Trace rays **************** //
+    // **************** Open CL **************** //
+    raytracing_openCL(image_f, WIDTH, HEIGHT, RAYS_PER_PIXEL, RAYS_DEPTH, spheres, NUMBER_OF_SPHERES, &camera);
+    // Render images
+    renderImage(image_f, "OpenCL.png", WIDTH, HEIGHT);
+
+    // **************** CPU **************** //
     // Time measure
     struct timeval start, end;
     printf("Trace rays!");
@@ -77,24 +87,31 @@ int main(int argc, char* argv[])
     uint64_t elapsedTime = (end.tv_sec - start.tv_sec) * 1000000ull + (end.tv_usec - start.tv_usec);
     printf("Raytracing elapsed time: %lu us\n", elapsedTime);
     printf("Cycles per pixel: %f\n", elapsedTime * 2.8e3f / (WIDTH * HEIGHT));
+    
+    // Render images
+    renderImage(image_f, "CPU.png", WIDTH, HEIGHT);
 
     // Free spheres memory
     free(spheres);
-
-    // Linear space to Gamma space tranformation
-    imageLinearToGamma(image_f, WIDTH * HEIGHT);
-
-    // Output image allocation & copy
-    color_u8_t* image_u8 = malloc(WIDTH * HEIGHT * sizeof(color_u8_t));
-    imageFloatToU8(image_f, image_u8, WIDTH * HEIGHT);
+    free(image_f);
     
     // Release float image
-    free(image_f);
+
+    return EXIT_SUCCESS;
+}
+
+void renderImage(color_t *image, const char* filename, const uint16_t width, const uint16_t height)
+{
+    // Linear space to Gamma space tranformation
+    imageLinearToGamma(image, width * height);
+
+    // Output image allocation & copy
+    color_u8_t* image_u8 = malloc(width * height * sizeof(color_u8_t));
+    imageFloatToU8(image, image_u8, width * height);
 
     // Save image
-    stbi_write_png("test.png", WIDTH, HEIGHT, CHANNEL_NUM, image_u8, WIDTH * CHANNEL_NUM);
+    stbi_write_png(filename, width, height, CHANNEL_NUM, image_u8, width * CHANNEL_NUM);
 
     // Destroy image
     free(image_u8);
-    return EXIT_SUCCESS;
 }
