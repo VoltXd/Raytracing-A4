@@ -11,7 +11,7 @@ void raytracing_openCL(color_t *image, const uint16_t width, const uint16_t heig
 	FILE *kernelFile;
 	char *kernelSource;
 	size_t kernelSize;
-    const char* path = "kernel/raytracing.cl";
+    const char* path = "kernel/raytracing_gpu.cl";
 
 	kernelFile = fopen(path, "r");
 
